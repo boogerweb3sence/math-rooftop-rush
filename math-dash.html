@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Math Rooftop Rush</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    text-align:center;
+    background:#222;
+    color:white;
+}
+
+#menu{
+    margin-top:100px;
+}
+
+button{
+    padding:15px 25px;
+    font-size:18px;
+    margin:10px;
+    cursor:pointer;
+}
+
+#gameUI{
+    display:none;
+}
+
+canvas{
+    background:#87CEEB;
+    display:block;
+    margin:0 auto;
+}
+
+#question{
+    font-size:28px;
+    margin-top:15px;
+}
+
+#feedback{
+    font-size:40px;
+    height:80px;
+}
+
+#choices button{
+    padding:12px 20px;
+    font-size:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu">
+    <h1>🏃‍♂️ Math Rooftop Rush</h1>
+    <button onclick="startGame('Easy')">Easy</button>
+    <button onclick="startGame('Medium')">Medium</button>
+    <button onclick="startGame('Hard')">Hard</button>
+    <button onclick="startGame('Nightmare')">Nightmare</button>
+</div>
+
+<div id="gameUI">
+    <canvas id="gameCanvas" width="900" height="400"></canvas>
+    <div id="question"></div>
+    <div id="choices"></div>
+    <div id="feedback"></div>
+</div>
+
+<script>
+let canvas = document.getElementById("gameCanvas");
+let ctx = canvas.getContext("2d");
+
+let player = {
+    x:150,
+    y:300,
+    velocityY:0
+};
+
+let gravity = 1.2;
+let speed = 4;
+let buildings = [];
+let currentAnswer = 0;
+let score = 0;
+let questionsAnswered = 0;
+let currentDifficulty = "";
+let timerInterval;
+let timeLeft = 10;
+let runFrame = 0;
+let wrongCount = 0;
+
+let questionBox = document.getElementById("question");
+let feedbackBox = document.getElementById("feedback");
+let choicesBox = document.getElementById("choices");
+
+function startGame(difficulty){
+    currentDifficulty = difficulty;
+    document.getElementById("menu").style.display="none";
+    document.getElementById("gameUI").style.display="block";
+    buildings=[];
+    score=0;
+    questionsAnswered=0;
+    wrongCount=0;
+    generateBuildings();
+    newQuestion();
+    gameLoop();
+}
+
+function generateBuildings(){
+    for(let i=0;i<6;i++){
+        buildings.push({
+            x:400+i*250,
+            width:120,
+            height:Math.random()*120+120
+        });
+    }
+}
+
+function drawBuildings(){
+    buildings.forEach(b=>{
+        ctx.fillStyle="#8B0000";
+        ctx.fillRect(b.x,canvas.height-b.height,b.width,b.height);
+
+        ctx.fillStyle="yellow";
+        for(let i=30;i<b.height;i+=40){
+            ctx.fillRect(b.x+20,canvas.height-i,20,20);
+            ctx.fillRect(b.x+70,canvas.height-i,20,20);
+        }
+    });
+}
+
+function drawPlayer(){
+    runFrame++;
+    ctx.fillStyle="black";
+
+    // head
+    ctx.fillRect(player.x+8,player.y-20,15,15);
+
+    // body
+    ctx.fillRect(player.x+12,player.y,10,30);
+
+    // legs
+    if(runFrame % 20 < 10){
+        ctx.fillRect(player.x,player.y+30,10,25);
+        ctx.fillRect(player.x+20,player.y+35,10,20);
+    }else{
+        ctx.fillRect(player.x,player.y+35,10,20);
+        ctx.fillRect(player.x+20,player.y+30,10,25);
+    }
+
+    // arms
+    if(runFrame % 20 < 10){
+        ctx.fillRect(player.x-5,player.y+5,10,8);
+        ctx.fillRect(player.x+25,player.y+15,10,8);
+    }else{
+        ctx.fillRect(player.x-5,player.y+15,10,8);
+        ctx.fillRect(player.x+25,player.y+5,10,8);
+    }
+}
+
+function newQuestion(){
+    clearInterval(timerInterval);
+    feedbackBox.innerHTML = "";
+
+    let a=Math.floor(Math.random()*9)+1;
+    let b=Math.floor(Math.random()*9)+1;
+
+    if(currentDifficulty==="Easy"){
+        currentAnswer=a+b;
+        questionBox.innerText=`${a} + ${b} = ?`;
+    }
+    else if(currentDifficulty==="Medium"){
+        currentAnswer=a*b;
+        questionBox.innerText=`${a} × ${b} = ?`;
+    }
+    else if(currentDifficulty==="Hard"){
+        currentAnswer=(a*b)-a;
+        questionBox.innerText=`${a} × ${b} - ${a} = ?`;
+    }
+    else{
+        let c=Math.floor(Math.random()*5)+1;
+        currentAnswer=(a*c)+"/"+(b*c);
+        questionBox.innerText=`${a}/${b} × ${c}/${c} = ?`;
+    }
+
+    generateChoices();
+    startTimer();
+}
+
+function generateChoices(){
+    choicesBox.innerHTML="";
+    let answers=[currentAnswer];
+
+    while(answers.length<4){
+        let wrong=Math.floor(Math.random()*50)+1;
+        if(!answers.includes(wrong)){
+            answers.push(wrong);
+        }
+    }
+
+    answers.sort(()=>Math.random()-0.5);
+
+    answers.forEach(ans=>{
+        let btn=document.createElement("button");
+        btn.innerText=ans;
+        btn.onclick=()=>checkAnswer(ans);
+        choicesBox.appendChild(btn);
+    });
+}
+
+function checkAnswer(answer){
+    clearInterval(timerInterval);
+
+    if(answer==currentAnswer){
+        feedbackBox.innerHTML="✅ CORRECT!";
+        player.velocityY=-18;
+        score++;
+    }else{
+        wrongCount++;
+        feedbackBox.innerHTML="<h1 style='color:red;'>❌ WRONG ❌</h1>";
+    }
+
+    if(wrongCount>=5){
+        feedbackBox.innerHTML="<h1 style='background:black;color:white;padding:20px;'>💀 LIL GNG GOT 5 WRONG 💀</h1>";
+        setTimeout(()=>{ location.reload(); },2500);
+        return;
+    }
+
+    questionsAnswered++;
+
+    if(questionsAnswered>=5){
+        setTimeout(()=>{
+            alert("Level Complete! Score: "+score);
+            location.reload();
+        },1500);
+    }else{
+        setTimeout(()=>{
+            newQuestion();
+        },1000);
+    }
+}
+
+function startTimer(){
+    timeLeft = 10;
+
+    timerInterval = setInterval(()=>{
+        timeLeft--;
+
+        if(timeLeft<=0){
+            clearInterval(timerInterval);
+            feedbackBox.innerHTML="<h1 style='color:orange;'>⏰ TIME'S UP!</h1>";
+
+            setTimeout(()=>{
+                newQuestion();
+            },1000);
+        }
+
+    },1000);
+}
+
+function update(){
+    player.velocityY+=gravity;
+    player.y+=player.velocityY;
+
+    if(player.y>300){
+        player.y=300;
+    }
+
+    buildings.forEach(b=>{
+        b.x-=speed;
+        if(b.x+b.width<0){
+            b.x=canvas.width+200;
+        }
+    });
+}
+
+function gameLoop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#87CEEB";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    drawBuildings();
+    drawPlayer();
+    update();
+    requestAnimationFrame(gameLoop);
+}
+</script>
+
+</body>
+</html>
