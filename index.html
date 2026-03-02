@@ -52,6 +52,9 @@ canvas{
 
 <body>
 
+<!-- BACKGROUND MUSIC -->
+<audio id="bgMusic" src="mafgaem.mp3" loop></audio>
+
 <div id="menu">
     <h1>🏃‍♂️ Math Rooftop Rush</h1>
     <button onclick="startGame('Easy')">Easy</button>
@@ -70,6 +73,7 @@ canvas{
 <script>
 let canvas = document.getElementById("gameCanvas");
 let ctx = canvas.getContext("2d");
+let music = document.getElementById("bgMusic");
 
 let player = {
     x:150,
@@ -88,12 +92,21 @@ let timerInterval;
 let timeLeft = 10;
 let runFrame = 0;
 let wrongCount = 0;
+let musicStarted = false;
 
 let questionBox = document.getElementById("question");
 let feedbackBox = document.getElementById("feedback");
 let choicesBox = document.getElementById("choices");
 
 function startGame(difficulty){
+
+    // Start music once (browser requires button click)
+    if(!musicStarted){
+        music.volume = 1.0; // optional volume control
+        music.play();
+        musicStarted = true;
+    }
+
     currentDifficulty = difficulty;
     document.getElementById("menu").style.display="none";
     document.getElementById("gameUI").style.display="block";
@@ -133,13 +146,9 @@ function drawPlayer(){
     runFrame++;
     ctx.fillStyle="black";
 
-    // head
     ctx.fillRect(player.x+8,player.y-20,15,15);
-
-    // body
     ctx.fillRect(player.x+12,player.y,10,30);
 
-    // legs
     if(runFrame % 20 < 10){
         ctx.fillRect(player.x,player.y+30,10,25);
         ctx.fillRect(player.x+20,player.y+35,10,20);
@@ -148,7 +157,6 @@ function drawPlayer(){
         ctx.fillRect(player.x+20,player.y+30,10,25);
     }
 
-    // arms
     if(runFrame % 20 < 10){
         ctx.fillRect(player.x-5,player.y+5,10,8);
         ctx.fillRect(player.x+25,player.y+15,10,8);
